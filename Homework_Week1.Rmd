@@ -1,0 +1,96 @@
+---
+title: "Homework Week #1"
+author: "Shaya Engelman"
+date: "2024-01-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Instructions: Part #1
+
+### For this assignment, build the first letters for both your first and last name using point plots in R.
+
+The following code creates a scatterplot of points that form the letters 'S' and 'E'. Those are my initials. For this exercise, I only used straight lines and avoided using curves.
+
+```{r}
+x <- c(rep(-2, 500), seq(-2, -1, length.out = 1000), rep(-1, 500), 
+       seq(-2, -1, length.out = 1000), seq(-2, -1, length.out = 1000), 
+       seq(0, 1, length.out = 1000), rep(0, 500), seq(0, 1, length.out = 1000),
+       seq(0, 1, length.out = 1000))
+
+y <- c(seq(0,1,length.out=500), rep(0,1000), seq(-1,0, length.out=500),
+       rep(1,1000), rep(-1,1000), rep(0,1000), seq(-1,1,length.out=500), rep(1,1000),
+       rep(-1,1000))
+se <- rbind(x,y)
+plot(y~x, xlim=c(-3,2), ylim=c(-3,3))
+```
+
+## Instructions: Part #2
+
+### Then, write R code that will left multiply (%\*%) a square matrix (x) against each of the vectors of points (y). Initially, that square matrix will be the Identity matrix. Use a loop that changes the transformation matrix incrementally to demonstrate 1) shear, 2) scaling, 3) rotation , and 4) projection in animated fashion.
+
+##### Left Multiply by Identity Matrix
+
+The following code is just left multiplying the initial plot points with an identity matrix. The result is no change to the plot.
+
+```{r}
+trans_matrix <- diag(2)
+transformed_se <- trans_matrix %*% se
+```
+
+##### Shear transformation
+
+In this section, a sequence of shearing matrices is applied to the points, creating an animated series of plots. The shearing factor varies, causing a deformation in the original set of points along the x-axis. This demonstrates the impact of shearing transformations on the initial distribution.
+
+```{r}
+x11()
+for (i in seq(0,1, length.out = 50)) {
+  trans_matrix <- matrix(c(1, 0, i, 1), nrow=2, ncol=2)
+  transform <- apply(se, 2, function(x) x %*% trans_matrix)
+  plot(transform[2,] ~ transform[1,], xlim=c(-3, 3), ylim=c(-3, 3))
+}
+```
+
+##### Scaling transformation
+
+Here, a sequence of scaling matrices is applied to the points, resulting in an animated series of plots. The scaling factor increases linearly, stretching or compressing the points along both the x and y axes. This showcases the effect of scaling transformations on the original set of points.
+
+```{r}
+x11()
+for (i in seq(1,3, length.out = 50)) {
+  trans_matrix <- matrix(c(i, 0, 0, i), nrow=2, ncol=2)
+  transform <- apply(se, 2, function(x) x %*% trans_matrix)
+  plot(transform[2,] ~ transform[1,], xlim=c(-10,10), ylim=c(-10,10))
+}
+```
+
+##### Rotate Transformation
+
+This section produces an animated series of plots by applying a sequence of rotation matrices to the points. The rotation angle increases, causing the entire set of points to rotate around the origin. This highlights the impact of rotational transformations on the original distribution.
+
+```{r}
+x11()
+for (i in seq(1,10, length.out = 50)) {
+  ext_se <- rbind(se, matrix(0, nrow = 1, ncol = ncol(se)))
+  trans_matrix <- matrix(c(cos(i), sin(i), 0, -sin(i), cos(i), 0, 0, 0, 1), nrow=3, ncol=3)
+  transform <- apply(ext_se, 2, function(x) x %*% trans_matrix)
+  plot(transform[2,] ~ transform[1,], xlim=c(-3,3), ylim=c(-3,3))
+}
+```
+
+##### Projection animation
+
+In this final section, a sequence of linear translation matrices is applied to the points, creating an animated series of plots. The translation occurs along the x-axis, gradually shifting the entire set of points. This demonstrates the impact of successive linear transformations on the original distribution.
+
+```{r}
+x11()
+for (i in seq(-1, 1, length.out = 50)) {
+  ext_se <- rbind(se, matrix(0, nrow = 1, ncol = ncol(se)))
+  trans_matrix <- matrix(c(i,0,0,0,1,0,0,0,1), nrow=3, ncol=3)
+  transform <- apply(ext_se, 2, function(x) x %*% trans_matrix)
+  plot(transform[2,] ~ transform[1,], xlim=c(-3,3), ylim=c(-3,3))
+}
+```
