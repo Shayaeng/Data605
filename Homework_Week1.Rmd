@@ -83,21 +83,10 @@ for (i in seq(1,10, length.out = 50)) {
 }
 ```
 
-In this final section, a sequence of linear translation matrices is applied to the points, creating an animated series of plots. The translation occurs along the x-axis, gradually shifting the entire set of points. This demonstrates the impact of successive linear transformations on the original distribution.
-
-```{r}
-x11()
-for (i in seq(-1, 1, length.out = 50)) {
-  ext_se <- rbind(se, matrix(0, nrow = 1, ncol = ncol(se)))
-  trans_matrix <- matrix(c(i,0,0,0,1,0,0,0,1), nrow=3, ncol=3)
-  transform <- apply(ext_se, 2, function(x) x %*% trans_matrix)
-  plot(transform[2,] ~ transform[1,], xlim=c(-3,3), ylim=c(-3,3))
-}
-```
 
 ##### Projection animation
 
-In this final section, a sequence of projection matrices is applied to the points, creating an animated series of plots. The projection occurs in a subspace, gradually transforming the entire set of points. This demonstrates the impact of successive linear transformations on the original distribution. The projection transformation essentially “flattens” the points onto a lower-dimensional subspace, which can be seen as a kind of “shadow” of the original points. In this specific case, the subspace is a 1-dimensional line from a 2-dimensional set of points.
+In this final section, a sequence of projection matrices is applied to the points, creating an animated series of plots. The projection occurs in a subspace, gradually transforming the entire set of points. This demonstrates the impact of successive linear transformations on the original distribution. The projection transformation essentially “flattens” the points onto a lower-dimensional subspace, which can be seen as a kind of “shadow” of the original points. In this specific case, the subspace is a 1-dimensional line from a 2-dimensional set of points. I ran this twice, to flatten it along each pof the axes.
 
 ```{r}
 x11()
@@ -105,5 +94,14 @@ for (i in seq(1, 0, length.out = 50)) {
   trans_matrix <- matrix(c(1, 0, 0, i), nrow = 2, ncol = 2)
   transform <- apply(se, 2, function(x) x %*% trans_matrix)
   plot_projection <- plot(transform[2,] ~ transform[1,], xlim=c(-3, 3), ylim=c(-3, 3))
+}
+```
+
+```{r}
+x11()
+for (i in seq(1, 0, length.out = 50)) {
+  trans_matrix <- matrix(c(i,0,0,1), nrow=2, ncol=2)
+  transform <- apply(se, 2, function(x) x %*% trans_matrix)
+  plot(transform[2,] ~ transform[1,], xlim=c(-3,3), ylim=c(-3,3))
 }
 ```
