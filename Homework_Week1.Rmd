@@ -86,7 +86,7 @@ for (i in seq(1,10, length.out = 50)) {
 
 ##### Projection animation
 
-In this final section, a sequence of projection matrices is applied to the points, creating an animated series of plots. The projection occurs in a subspace, gradually transforming the entire set of points. This demonstrates the impact of successive linear transformations on the original distribution. The projection transformation essentially “flattens” the points onto a lower-dimensional subspace, which can be seen as a kind of “shadow” of the original points. In this specific case, the subspace is a 1-dimensional line from a 2-dimensional set of points. I ran this twice, to flatten it along each pof the axes.
+In this final section, a sequence of projection matrices is applied to the points, creating an animated series of plots. The projection occurs in a subspace, gradually transforming the entire set of points. This demonstrates the impact of successive linear transformations on the original distribution. The projection transformation essentially “flattens” the points onto a lower-dimensional subspace, which can be seen as a kind of “shadow” of the original points. In this specific case, the subspace is a 1-dimensional line from a 2-dimensional set of points. I ran this twice, to flatten it along each of the axes.
 
 ```{r}
 x11()
