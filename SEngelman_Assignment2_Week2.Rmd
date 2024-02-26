@@ -1,0 +1,138 @@
+---
+title: "605 Week 2"
+author: "Shaya Engelman"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Problem set 1
+
+#### (1) Show that $A^TA$ $\neq$ $AA^T$ in general. (Proof and demonstration.)
+
+Since matrix multiplication is not commutative, meaning the order in
+which you multiply matrices results in different products, AB != BA.
+AAt, multiplied by AtA is just substituting At for B. This is obviously
+true for non-square matrices due to the resulting different dimensions
+of their products. Below I will demonstrate the same is true in square
+matrices:
+
+'$$
+\text{If } A = \begin{bmatrix}
+1 & 2 \\\\
+3 & 4 
+\end{bmatrix}, \quad \text{Then } A^T = \begin{bmatrix}
+1 & 3 \\\\
+2 & 4 
+\end{bmatrix}
+$$'
+
+Multiplying the matrices by each other in both orders returns the
+following results which are not equal to each other.
+
+'$$
+AA^T = \begin{bmatrix}
+5 & 11 \\\\
+11 & 25
+\end{bmatrix}, \quad \neq \quad A^TA = \begin{bmatrix}
+10 & 14 \\\\
+14 & 20
+\end{bmatrix}
+$$'
+
+Thus we see, that $AA^T$ $\neq$ $A^TA$.
+
+#### (2) For a special type of square matrix $A$, we get $A^TA$ = $AA^T$ . Under what conditions could this be true?
+
+As shown above, the reason why $AA^T$ $\neq$ $A^TA$ is that matrix
+multiplication isn't commutative, the order of the matrices matter. For
+that reason, if the two matrices are same, the order of multiplying them
+obviously does not matter. A symmetric matrix is when the the upper
+right triangle is the same as the lower left triangle. That mean that
+all the values above the main diagonal are mirrored below it. In such a
+matrix, the matrix and it's transpose would be identical and the order
+of multiplying them would not matter. This would result in $AA^T$ =
+$A^TA$. The Identity matrix is one such matrix. Another such matrix will
+be demonstrated below:
+
+'$$
+\text{If } A = \begin{bmatrix}
+1 & 2 & 3 \\\\
+2 & 1 & 4 \\\\
+3 & 4 & 1
+\end{bmatrix}, \quad \text{Then } A^T = \begin{bmatrix}
+1 & 2 & 3 \\\\
+2 & 1 & 4 \\\\
+3 & 4 & 1
+\end{bmatrix}
+$$'
+
+Multiplying the matrices by each other in both orders returns the
+following results which are equal to each other.
+
+'$$
+AA^T = \begin{bmatrix}
+14 & 16 & 14 \\\\
+16 & 21 & 14 \\\\
+14 & 14 & 26
+\end{bmatrix}, \quad = \quad A^TA = \begin{bmatrix}
+14 & 16 & 14 \\\\
+16 & 21 & 14 \\\\
+14 & 14 & 26
+\end{bmatrix}
+$$'
+
+
+
+# Problem set 2
+
+#### Write an R function to factorize a square matrix A into LU or LDU, whichever you prefer.
+
+
+```{r}
+# Define the function
+lu_decomposition <- function(A) {
+  # Get the dimensions of the matrix
+  n <- dim(A)[1]
+  
+  # Initialize L and U as the zero matrix and the identity matrix
+  L <- matrix(0, nrow = n, ncol = n)
+  U <- matrix(0, nrow = n, ncol = n)
+  
+  # Perform the LU decomposition
+  for (i in 1:n) {
+    for (j in 1:n) {
+      if (i <= j) {
+        U[i, j] <- A[i, j] - sum(L[i, 1:(i-1)] * U[1:(i-1), j])
+      }
+      if (i > j) {
+        if (U[j, j] == 0) {
+          stop("Matrix is not invertible or requires row permutations.")
+        }
+        L[i, j] <- (A[i, j] - sum(L[i, 1:(j-1)] * U[1:(j-1), j])) / U[j, j]
+      }
+      if (i == j) {
+        L[i, j] <- 1
+      }
+    }
+  }
+  
+  # Return the L and U matrices
+  return(list(L = L, U = U))
+}
+
+# Test the function
+A <- matrix(c(4, 3, 2,
+              8, 7, 2,
+              6, 3, 4), nrow=3, byrow=TRUE)
+result <- lu_decomposition(A)
+
+# Print the results
+print(result$L)
+print(result$U)
+```
