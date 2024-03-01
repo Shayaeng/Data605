@@ -1,0 +1,220 @@
+---
+title: "Untitled"
+author: "Shaya Engelman"
+date: "2024-02-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. A bag contains 5 green and 7 red jellybeans. How many ways can 5 jellybeans be 
+withdrawn from the bag so that the number of green ones withdrawn will be less than 
+2?
+Answer: 
+
+There are two possible ways to fulfill these requirements. We can either withdraw 0 green jellybeans and 5 red jellybeans, or we can withdraw 1 green jellybean and 4 red jellybeans.
+the binomial coeeficient formula is: $$C(n, k) = \frac{n!}{k!(n-k)!}$$
+where $n$ is the total number of items, and $k$ is the number of items to choose. Using R's choose() function, we can calculate the results.
+
+```{r}
+red <- 7
+green <- 5
+choose(red, 5) + choose(green, 1) * choose(red, 4)
+```
+2. A certain congressional committee consists of 14 senators and 13 representatives. How 
+many ways can a subcommittee of 5 be formed if at least 4 of the members must be 
+representatives?
+Answer: 
+
+Similar to the previous question, there are two possible ways to fulfill these requirements. We can either have 4 representatives and 1 senator, or we can have 5 representatives. Using R's choose() function, we can calculate the results.
+
+```{r}
+sen <- 14
+rep <- 13
+
+choose(rep, 4) * choose(sen, 1) + choose(rep, 5)
+```
+
+3. If a coin is tossed 5 times, and then a standard six-sided die is rolled 2 times, and finally 
+a group of three cards are drawn from a standard deck of 52 cards without 
+replacement, how many different outcomes are possible?
+Answer:
+
+The number of outcomes for each event is multiplied together to find the total number of outcomes. 
+
+```{r}
+coin <- 2
+die <- 6
+cards <- 52
+
+coin_outcomes <- coin^5
+die_outcomes <- die^2
+cards_outcomes <- choose(cards, 3)
+
+coin_outcomes * die_outcomes * cards_outcomes
+```
+
+4. 3 cards are drawn from a standard deck without replacement. What is the probability 
+that at least one of the cards drawn is a 3? Express your answer as a fraction or a 
+decimal number rounded to four decimal places.
+Answer:
+
+The probability of drawing at least one 3 is equal to 1 minus the probability of drawing no 3s. The probability of drawing no 3s is equal to the number of ways to draw 3 cards from the 49 non-3 cards divided by the number of ways to draw 3 cards from the 52 cards in the deck. 
+
+```{r}
+cards <- 52
+threes <- 4
+
+round(1 - choose(cards - threes, 3) / choose(cards, 3), 4)
+```
+
+5. Lorenzo is picking out some movies to rent, and he is primarily interested in 
+documentaries and mysteries. He has narrowed down his selections to 17
+documentaries and 14 mysteries.
+Step 1. How many different combinations of 5 movies can he rent?
+Answer: 
+
+The number of combinations of 5 movies is equal to the number of ways to choose 5 movies from the total number of movies. 
+
+```{r} 
+docs <- 17
+myst <- 14
+
+choose(docs + myst, 5)
+```
+
+Step 2. How many different combinations of 5 movies can he rent if he wants at least 
+one mystery?
+Answer: 
+
+The number of combinations of 5 movies with at least one mystery is equal to the number of ways to choose 5 movies from the total number of movies minus the number of ways to choose 5 documentaries. 
+
+```{r}
+choose(docs + myst, 5) - choose(docs, 5)
+```
+
+6. In choosing what music to play at a charity fund raising event, Cory needs to have an 
+equal number of symphonies from Brahms, Haydn, and Mendelssohn. If he is setting up 
+a schedule of the 9 symphonies to be played, and he has 4 Brahms, 104 Haydn, and 17
+Mendelssohn symphonies from which to choose, how many different schedules are 
+possible? Express your answer in scientific notation rounding to the hundredths place.
+Answer: 
+
+I am unsure if the question here is asking for total combinations or total permutations. I will calculate both using R and provide both answers.
+```{r}
+brahms <- 4
+haydn <- 104
+mendelssohn <- 17
+k <- 3
+
+# Calculate combinations
+comb_brahms <- choose(brahms, k)
+comb_haydn <- choose(haydn, k)
+comb_mendelssohn <- choose(mendelssohn, k)
+
+total_comb <- comb_brahms * comb_haydn * comb_mendelssohn
+
+# Calculate permutations
+perm_brahms <- brahms * (brahms - 1) * (brahms - 2)
+perm_haydn <- haydn * (haydn - 1) * (haydn - 2)
+perm_mendelssohn <- mendelssohn * (mendelssohn - 1) * (mendelssohn - 2)
+
+total_perm <- perm_brahms * perm_haydn * perm_mendelssohn
+
+print(paste("Total combinations: ", format(total_comb, scientific = T, digits = 3)))
+print(paste("Total permutations: ", format(total_perm, scientific = T, digits = 3)))
+```
+7. An English teacher needs to pick 13 books to put on his reading list for the next school 
+year, and he needs to plan the order in which they should be read. He has narrowed 
+down his choices to 6 novels, 6 plays, 7 poetry books, and 5 nonfiction books.
+Step 1. If he wants to include no more than 4 nonfiction books, how many different 
+reading schedules are possible? Express your answer in scientific notation rounding to 
+the hundredths place.
+Answer: 
+
+This question is clearly asking for the total number of permutations. The permutation formula is: $$\frac{n!}{(n-r)!}$$ I will calculate this using R.
+
+```{r}
+novels <- 6
+plays <- 6
+poetry <- 7
+nonfiction <- 5
+
+total_books <- novels + plays + poetry + nonfiction
+
+format((factorial(total_books) / factorial(total_books - 13) - factorial(novels + plays + poetry) / factorial((novels + plays + poetry) - 8)), scientific = TRUE, digits = 3)
+```
+
+
+Step 2. If he wants to include all 6 plays, how many different reading schedules are 
+possible? Express your answer in scientific notation rounding to the hundredths place.
+Answer: 
+
+If the teacher wants to include all 6 plays, then the number of schedules is equal to the number of ways to choose 7 books from the 6 novels, 7 poetry books, and 5 nonfiction books.
+
+```{r}
+#using the variables from part 1
+total_remaining_books <- novels + poetry + nonfiction
+
+format((factorial(total_remaining_books) / factorial(total_remaining_books - 7)), scientific = TRUE, digits = 3)
+```
+
+8. Zane is planting trees along his driveway, and he has 5 sycamores and 5 cypress trees to 
+plant in one row. What is the probability that he randomly plants the trees so that all 5
+sycamores are next to each other and all 5 cypress trees are next to each other? 
+Express your answer as a fraction or a decimal number rounded to four decimal places.
+Answer:
+
+There are two possible ways to fulfill the requirements, either the group of sycamores is planted first, or the group of cypress trees is planted first. The probability of each of these events is equal to the number of ways to arrange the group of sycamores or cypress trees divided by the total number of ways to arrange the trees. 
+
+```{r}   
+sycamores <- 5
+cypress <- 5
+total_trees <- sycamores + cypress
+
+arrange_sycamores <- factorial(sycamores) * factorial(cypress)
+arrange_cypress <- factorial(cypress) * factorial(sycamores)
+total_arrange <- factorial(total_trees)
+prob_sycamores <- arrange_sycamores / total_arrange
+prob_cypress <- arrange_cypress / total_arrange
+
+round((prob_sycamores + prob_cypress), 4)
+```
+9. If you draw a queen or lower from a standard deck of cards, I will pay you $4. If not, you 
+pay me $16. (Aces are considered the highest card in the deck.)
+Step 1. Find the expected value of the proposition. Round your answer to two decimal 
+places. Losses must be expressed as negative values.
+Answer: $_______________
+
+The expected value of the proposition is equal to the probability of winning times the amount won minus the probability of losing times the amount lost. 
+
+```{r}
+win_prob <- (4 * 4) / 52
+lose_prob <- 1 - win_prob
+
+round((win_prob * 4) - (lose_prob * 16), 2)
+```
+
+```{r}
+prob_win <- 44/52
+prob_lose <- 8/52
+win_amount <- 4
+lose_amount <- -16
+
+expected_value <- (prob_win * win_amount) + (prob_lose * lose_amount)
+round(expected_value, 2)
+```
+
+Step 2. If you played this game 833 times how much would you expect to win or lose? 
+Round your answer to two decimal places. Losses must be expressed as negative 
+values.
+Answer: $_______________
+
+To find the expected value of playing the game 833 times, we multiply the expected value of the proposition by the number of times the game is played. 
+
+```{r}
+games <- 833
+round(expected_value * games, 2)
+```

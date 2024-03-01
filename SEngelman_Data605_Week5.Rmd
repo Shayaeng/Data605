@@ -149,7 +149,7 @@ expected value?
 
 Answers below. I printed the expected value of the probability. For the expected amount over 1000, or any given amount of, hours, multiply the lambda by the hours)
 ```{r}
-lambda <- 10  # average rate of arrival per hour
+lambda <- 1000
 
 prob_less_than_or_equal_2_failures <- ppois(2, lambda)
 
