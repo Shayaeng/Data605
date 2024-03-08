@@ -1,0 +1,141 @@
+---
+title: "Untitled"
+author: "Shaya Engelman"
+date: "2024-03-06"
+output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+
+1.  Let X1, X2, . . . , Xn be n mutually independent random variables,
+    each of which is uniformly distributed on the integers from 1 to k.
+    Let Y denote the minimum of the Xi's. Find the distribution of Y .
+
+Y is the minimum of X. Let x be the smallest number. The probability
+that Y is greater than or equal to x is multiplying the probability of
+each X event together. P(X1) \* P(X2) \* . . . P(Xn). Each probability
+is written as $(k - x + 1)/k$. When mutiplying them all together we get
+$(k - x + 1)^n/k^n$. Since we were told that $Xi$ is uniformly
+distributed we are looking at 1 - the probability that Y is greater than
+x, $$1 - (k - x + 1)^n/k^n$$ This is the CDF of Y. The PDF is the
+derivative of the CDF. $$f(x)
+= n(k - x)^{n-1}/k^n$$
+
+We can visualize the distribution with the below plot:
+
+```{r}
+set.seed(1125)
+n <- 1000
+k <- 20
+Y <- c()
+for (i in 1:n){
+  Xn <- sample(1:k, 5)
+  Y <- c(Y, min(Xn))
+}
+ggplot(data.frame(table(Y)), aes(Y, Freq)) + 
+  geom_bar(stat = "identity", fill = "skyblue2", width = 1) +
+  ylab("Count") + 
+  ggtitle("Distribution of Y") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+2.  Your organization owns a copier (future lawyers, etc.) or MRI
+    (future doctors). This machine has a manufacturer's expected
+    lifetime of 10 years. This means that we expect one failure every
+    ten years. (Include the probability statements and R Code for each
+    part.).
+
+**I found the wording of the problems a bit ambiguous. I solved them
+assuming the problems were asking for the probability of the machine not
+breaking within the first 8 years (inclusive). Not that it had broken by
+then and not that they always broke in the ninth year. Just that it had
+not broken within the first 8**
+
+a.  What is the probability that the machine will fail after 8 years?.
+    Provide also the expected value and standard deviation. Model as a
+    geometric. (Hint: the probability is equivalent to not failing
+    during the first 8 years..)
+
+$$P(X=x) = (1-p)^{x-1} \cdot p$$
+
+```{r}
+
+p <- 1/10
+k <- 8
+
+geom_prob <- 1 - (1 - p)^(k - 1) * p
+
+expected_value <- 1 / p
+standard_deviation <- sqrt((1 - p) / p^2)
+
+cat("Geometric Probability:", geom_prob, "\n")
+cat("Expected value: ", expected_value, "\n")
+cat("Standard Deviation: ", standard_deviation, "\n")
+```
+
+b.  What is the probability that the machine will fail after 8 years?.
+    Provide also the expected value and standard deviation. Model as an
+    exponential.
+
+$$f(x; \lambda) = \lambda \cdot e^{-\lambda x}$$
+
+```{r}
+lambda <- 0.1
+
+exp_prob <- exp(-lambda * 8)
+
+expected_value <- 1 / lambda
+standard_deviation <- 1 / lambda
+
+cat("Exponential Probability:", exp_prob, "\n")
+cat("Expected value: ", expected_value, "\n")
+cat("Standard Deviation: ", standard_deviation, "\n")
+
+```
+
+c.  What is the probability that the machine will fail after 8 years?.
+    Provide also the expected value and standard deviation. Model as a
+    binomial. (Hint: 0 success in 8 years)
+
+$$P(X = k) = \binom{n}{k} \cdot p^k \cdot (1-p)^{n-k}$$
+
+```{r}
+n <- 8
+p <- 0.1
+k <- 0
+
+binom_prob <- dbinom(k, n, p)
+
+expected_value <- n * p
+standard_deviation <- sqrt(n * p * (1 - p))
+
+cat("Binomial Probability:", binom_prob, "\n")
+cat("Expected value: ", expected_value, "\n")
+cat("Standard Deviation: ", standard_deviation, "\n")
+
+```
+
+d.  What is the probability that the machine will fail after 8 years?.
+    Provide also the expected value and standard deviation. Model as a
+    Poisson.
+
+$$P(X=k) = \frac{e^{-\lambda} \cdot \lambda^k}{k!}$$
+
+```{r}
+lambda <- 0.8
+k <- 0
+pois_prob <- dpois(k, lambda)
+
+lambda <- 1
+expected_value <- lambda
+standard_deviation <- sqrt(lambda)
+cat("Poisson Probability:", pois_prob, "\n")
+cat("Expected value: ", expected_value, "\n")
+cat("Standard Deviation: ", standard_deviation, "\n")
+```
