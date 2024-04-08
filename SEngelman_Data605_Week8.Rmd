@@ -1,0 +1,77 @@
+---
+title: "HW Week 8"
+author: "Shaya Engelman"
+date: "2024-03-13"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1 
+
+**A company buys 100 lightbulbs, each of which has an exponential lifetime of 1000 hours. What is the expected time for the first of these bulbs to burn out?**
+```{r}
+mean = 1000 / 100
+mean
+```
+
+## Question 2 
+
+**Assume that $X1$ and $X2$ are independent random variables, each having an exponential density with parameter $λ$. Show that $Z = X1 - X2$ has density**
+$$f_Z(z) = \frac{1}{2} \lambda e^{-\lambda |z|}$$
+
+Given that $X_1$ and $X_2$ both have exponential densities with parameter $\lambda$:
+
+$$ f_{X_1}(x) = \lambda e^{-\lambda x} $$ $$ f_{X_2}(x) = \lambda e^{-\lambda x} $$
+
+We can use the convolution of probability density functions (PDFs) since $X_1$ and $X_2$ are independent random variables. The convolution of $f_{X_1}(x)$ and $f_{X_2}(x)$ is given by:
+
+$$ f_Z(z) = \int_{-\infty}^{\infty} f_{X_1}(x) \cdot f_{X_2}(z - x) \, dx $$
+
+Now, let's compute the convolution:
+
+$$ f_Z(z) = \int_{-\infty}^{\infty} \lambda e^{-\lambda x} \cdot \lambda e^{-\lambda (z - x)} \, dx $$
+
+Combine the exponential terms: $$ f_Z(z) = \int_{-\infty}^{\infty} \lambda^2 e^{-\lambda x} e^{\lambda x} e^{-\lambda z} \, dx $$
+
+Simplify the exponentials: $$ f_Z(z) = \int_{-\infty}^{\infty} \lambda^2 e^{-\lambda z} \, dx $$
+
+Perform the integration: $$ f_Z(z) = \lambda^2 e^{-\lambda z} \int_{-\infty}^{\infty} dx $$
+
+The integral $\int_{-\infty}^{\infty} dx$ is the total length of the real line, which is infinite. However, since we are dealing with a probability density function, the area under the curve must integrate to 1. Therefore: $$ f_Z(z) = \lambda^2 e^{-\lambda z} \cdot 1 $$
+
+Finally, we obtain the simplified expression: $$ f_Z(z) = \lambda^2 e^{-\lambda z} $$
+
+Now, substitute $\lambda^2$ with $\frac{1}{2}\lambda^2$ to account for the negative values not being a possibility: $$ f_Z(z) = \frac{1}{2}\lambda^2 e^{-\lambda |z|} $$
+
+## Question 3 
+
+**Let $X$ be a continuous random variable with mean $µ = 10$ and variance $σ^2 = 100/3$. Using Chebyshev's Inequality, find an upper bound for the following probabilities:**
+(a) P(|X - 10| ≥ 2)
+(b) P(|X - 10| ≥ 5)
+(c) P(|X - 10| ≥ 9)
+(d) P(|X - 10| ≥ 20)
+
+Chebyshev's Inequality is expressed by $P(|X - \mu| \geq k\sigma) \leq \frac{1}{k^2}$
+
+```{r}
+# Define the mean and standard deviation
+mu <- 10 #the mean, not used in this problem but there for reference
+sigma <- sqrt(100/3) # the standard deviation
+
+# Calculate the upper bounds for the probabilities
+P1 <- 1/(2/sigma)^2
+P2 <- 1/(5/sigma)^2
+P3 <- 1/(9/sigma)^2
+P4 <- 1/(20/sigma)^2
+
+# Print the results
+print(P1)
+print(P2)
+print(P3)
+print(P4)
+```

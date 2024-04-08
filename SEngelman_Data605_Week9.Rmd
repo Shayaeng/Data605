@@ -1,0 +1,113 @@
+---
+title: HW Week9
+author: Shaya Engelman
+date: \today
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+# Q1
+
+The price of one share of stock in the Pilsdorff Beer Company is given by $Yn$ on the $n$th day of the year. Finn observes that the differences $X_n = Y_{n+1} - Y_n$ appear to be independent random variables with a common distribution having mean $µ = 0$ and variance $σ^2 = 1/4$. If $Y_1 = 100$, estimate the probability that $Y_{365}$ is: (a) ≥ 100. (b) ≥ 110. (c) ≥ 120.
+
+```{r}
+# Given parameters
+mean <- 100 # givent he mu is 0, all the values of Yn will be 100
+sd <- sqrt(1/4) # given the variance is 1/4
+n <- 365 # number of days
+
+# (a) Probability that Y_365 >= 100
+prob_a <- pnorm(100, mean, sd * sqrt(n)) # using the CLT to calculate the probability as a normal distribution
+cat("Probability that Y_365 >= 100:", prob_a, "\n")
+
+# (b) Probability that Y_365 >= 110
+prob_b <- pnorm(110, mean, sd * sqrt(n))
+cat("Probability that Y_365 >= 110:", prob_b, "\n")
+
+# (c) Probability that Y_365 >= 120
+prob_c <- pnorm(120, mean, sd * sqrt(n))
+cat("Probability that Y_365 >= 120:", prob_c, "\n")
+```
+
+# Q2
+
+**Calculate the expected value and variance of the binomial distribution using the moment generating function.**
+
+The moment generating function of the binomial distribution is given by: $$M(t) = (1 - p + pe^t)^n$$
+
+### Expected value
+
+The expected value $E[X]$ of a random variable $X$ is given by the first derivative of the MGF evaluated at $t = 0$:
+
+$$ E[X] = M_X'(0) $$
+
+Taking the derivative of $M_X(t)$ with respect to $t = 0$:
+
+$$ M_X'(t) = npe^0(pe^0 + 1 - p)^{n-1} $$
+
+$$ M_X'(0) = np $$
+
+Therefore, the expected value of the binomial distribution is $np$.
+
+### variance
+
+The variance $Var(X)$ of a random variable $X$ is given by the second derivative of the MGF evaluated at $t = 0$ plus the square of the expected value:
+
+$$ Var(X) = M_X''(0) + [M_X'(0)]^2 $$
+
+Taking the second derivative of $M_X(t)$ with respect to $t = 0$:
+
+$$ M_X''(0) = npe^0(pe^0 + 1 - p)^{n-1} + np^2e^{2 * 0}(pe^0 + 1 - p)^{n-2} $$
+
+$$ M_X''(0) = np + np^2 $$
+
+$$ M_X'(0) = np $$
+
+Plugging these values into the variance formula:
+
+$$ Var(X) = np + np^2 + (np)^2 $$
+
+$$ Var(X) = np + np^2 + n^2p^2 $$
+
+$$ Var(X) = np(1-p) $$
+
+Therefore, the variance of the binomial distribution is $np(1-p)$.
+
+# Q3
+
+**Calculate the expected value and variance of the exponential distribution using the moment generating function.**
+
+For the exponential distribution with rate parameter $\lambda$, the PDF is given by:
+
+$$ f(x|\lambda) = \lambda e^{-\lambda x} $$
+
+The MGF of the exponential distribution is:
+
+$$ M_X(t) = \frac{\lambda}{\lambda - t} \quad \text{for } t < \lambda $$
+
+### Expected value
+
+The expected value $E[X]$ of a random variable $X$ is given by the first derivative of the MGF evaluated at $t = 0$:
+
+$$ E[X] = -M_X'(0) $$
+
+$$ E[X] = -\left(-\frac{\lambda}{\lambda^2}\right) = \frac{1}{\lambda} $$
+
+Therefore, the expected value of the exponential distribution is $\frac{1}{\lambda}$.
+
+### Variance
+
+The variance $Var(X)$ of a random variable $X$ is given by the second derivative of the MGF evaluated at $t = 0$, plus the square of the expected value:
+
+$$ Var(X) = M_X''(0) + (E[X])^2 $$
+
+The second derivative of the MGF is:
+
+$$ M_X''(t) = \frac{2\lambda}{(\lambda - t)^3} $$
+
+$$ M_X''(0) = \frac{2}{\lambda^2} $$
+
+$$ Var(X) = \frac{2}{\lambda^2} + \left(\frac{1}{\lambda}\right)^2 = \frac{2}{\lambda^2} $$
+
+Therefore, the variance of the exponential distribution is $\frac{2}{\lambda^2}$.

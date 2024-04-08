@@ -1,0 +1,132 @@
+---
+title: HW Week10
+author: Shaya Engelman
+date: \today
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+Smith is in jail and has 1 dollar; he can get out on bail if he has 8 dollars.
+A guard agrees to make a series of bets with him. If Smith bets A dollars,
+he wins A dollars with probability .4 and loses A dollars with probability .6.
+Find the probability that he wins 8 dollars before losing all of his money if
+(a) he bets 1 dollar each time (timid strategy).
+(b) he bets, each time, as much as possible but not more than necessary to
+bring his fortune up to 8 dollars (bold strategy).
+(c) Which strategy gives Smith the better chance of getting out of jail?
+
+# Solution using simulations
+
+First we'll define a function to simulate each round of betting:
+
+```{r}
+game <- function(bet, amount){
+  if (runif(1) < 0.4){
+    amount <- amount + bet
+  } else {
+    amount <- amount - bet
+  }
+  return(amount)
+}
+```
+
+Now we will use this function to simulate the two strategies and calculate the probability of reaching $8.
+
+```{r}
+timid <- function(){
+  amount <- 1
+  while (amount > 0 & amount < 8){
+    amount <- game(1, amount)
+  }
+  return(amount)
+}
+
+bold <- function(){
+    amount <- 1
+    while (amount > 0 & amount < 8){
+        amount <- game(min(8 - amount, amount), amount)
+    }
+    return(amount)
+}
+
+
+# Simulate running both strategies 1000 times each
+num_simulations <- 10000
+
+timid_success_count <- 0
+bold_success_count <- 0
+
+for (i in 1:num_simulations) {
+  if (timid() == 8) {
+    timid_success_count <- timid_success_count + 1
+  }
+  if (bold() == 8) {
+    bold_success_count <- bold_success_count + 1
+  }
+}
+
+# Calculate the percentage of times each strategy reached the target goal
+timid_success_percentage <- timid_success_count / num_simulations
+bold_success_percentage <- bold_success_count / num_simulations
+
+# Print the results
+cat("Timid strategy success rate:", timid_success_percentage,"\n")
+cat("Bold strategy success rate:", bold_success_percentage,"\n")
+```
+
+# Solution using Markov Chains
+
+## Timid strategy
+
+We can solve this using Markov Chains and the markovchain package.
+
+```{r}
+library(markovchain)
+
+# Define the transition matrix for the timid strategy
+timid_mat <- matrix(c(1, 0, 0, 0, 0, 0, 0, 0, 0,
+                      0.6, 0, 0.4, 0, 0, 0, 0, 0, 0,
+                      0, 0.6, 0, 0.4, 0, 0, 0, 0, 0,
+                      0, 0, 0.6, 0, 0.4, 0, 0, 0, 0,
+                      0, 0, 0, 0.6, 0, 0.4, 0, 0, 0,
+                      0, 0, 0, 0, 0.6, 0, 0.4, 0, 0,
+                      0, 0, 0, 0, 0, 0.6, 0, 0.4, 0,
+                      0, 0, 0, 0, 0, 0, 0.6, 0, 0.4,
+                      0, 0, 0, 0, 0, 0, 0, 0, 1), byrow=TRUE, nrow=9)
+
+states <- as.character(0:8)
+
+timid_chain <- new("markovchain", states = states, transitionMatrix = timid_mat)
+
+abs_prob_timid <- absorptionProbabilities(timid_chain)
+print(paste("The probability of Smith reaching $8 is", round(abs_prob_timid[1, "8"], 3), "and the probability of Smith reaching $0 is", round(abs_prob_timid[1, "0"], 3)))
+```
+## Bold strategy
+
+This problem is basically a binomial probability proble. In order for Smith to win, he needs to win 3 times in a row. Each with a probability of 0.4. We can calculate that as $0.4^3$.
+
+```{r}
+0.4 ** 3
+```
+We can also solve this using Markov Chains as before to get the same result:
+
+```{r}
+# Define the transition matrix for the bold strategy
+bold_mat <- matrix(c(1, 0, 0, 0, 0,
+                      0.6, 0, 0.4, 0, 0,
+                      0.6, 0, 0, 0.4, 0,
+                      0.6, 0, 0, 0, 0.4, 
+                      0, 0, 0, 0, 1), byrow=TRUE, nrow=5)
+
+states <- as.character(0:4)
+
+bold_chain <- new("markovchain", states = states, transitionMatrix = bold_mat)
+
+abs_prob_bold <- absorptionProbabilities(bold_chain)
+
+print(paste("The probability of Smith reaching $8 is", round(abs_prob_bold[1, "4"], 3), "and the probability of Smith reaching $0 is", round(abs_prob_bold[1, "0"], 3)))
+```
+## Better strategy results
+
+As we can see from the above responses, Smith has around three times the chance of successfully achieving $8 by going with the bold strategy.
