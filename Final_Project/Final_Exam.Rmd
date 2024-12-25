@@ -1,0 +1,1033 @@
+---
+title: "Data 605 Final Exam"
+author: "Shaya Engelman"
+date: "2024-05-10"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(e1071)
+library(knitr)
+library(stats)
+library(MASS)
+library(mice)
+library(GGally)
+library(caret)
+```
+
+Pick one of the quanititative independent variables from the training data set (train.csv) , and define that variable as  X.   Make sure this variable is skewed to the right!  Pick the dependent variable and define it as  Y.  
+
+
+# 1- Probability.
+
+**Calculate as a minimum the below probabilities a through c.  Assume the small letter "x" is estimated as the 3d quartile of the X variable, and the small letter "y" is estimated as the 2d quartile of the Y variable.  Interpret the meaning of all probabilities.  In addition, make a table of counts as shown below.**
+**a.	 P(X>x | Y>y)		b.  P(X>x, Y>y)		c.  P(X<x | Y>y)**		
+**x/y	<=2d quartile	>2d quartile	Total**
+**<=3d quartile**
+**>3d quartile**			
+**Total**		
+
+**Does splitting the training data in this fashion make them independent? Let A be the new variable counting those observations above the 3d quartile for X, and let B be the new variable counting those observations above the 2d quartile for Y.    Does P(A|B)=P(A)P(B)?   Check mathematically, and then evaluate by running a Chi Square test for association.**
+
+## Answer Question #1
+ 
+First, load the data.
+```{r}
+train <- read.csv("C:\\Users\\shaya\\OneDrive\\Documents\\repos\\Data605\\Final_Project\\house-prices-advanced-regression-techniques\\train.csv")
+eval <- read.csv("C:\\Users\\shaya\\OneDrive\\Documents\\repos\\Data605\\Final_Project\\house-prices-advanced-regression-techniques\\test.csv")
+```
+
+Since there is a requirement for the variable to be skewed to the right, I will plot the density of the numeric columns to determine an approriate one to use.
+```{r}
+# Plot the density of numeric columns
+train |>
+  keep(is.numeric) |>
+  gather(key = "variable", value = "value") |>  
+  ggplot(aes(x = value)) + 
+  geom_histogram(aes(y = after_stat(density)), bins = 20, fill = '#4E79A7', color = 'black') + 
+  stat_density(geom = "line", color = "red") +
+  facet_wrap(~ variable, scales = 'free') +
+  theme(strip.text = element_text(size = 5))
+```
+
+Based on these plots, I will select the TotalBsmtSF variable as X and the SalePrice variable as Y. To ensure that the TotalBsmtSF variable is skewed to the right, I will calculate the skewness using the e1071 package.
+```{r}
+skewness <- skewness(train$TotalBsmtSF)
+skewness
+```
+Our X variable has a skewness value of 1.52. Usually, any skewness value greater than 1 is considered to be highly skewed.
+
+Next, I will calculate the probabilities a, b, and c as requested.
+```{r}
+# Define X and Y
+X <- train$TotalBsmtSF
+Y <- train$SalePrice
+
+# Find the quartiles
+x <- quantile(X, 0.75)  # 3rd quartile of X
+y <- quantile(Y, 0.50)  # 2nd quartile of Y
+
+# Store counts
+A <- as.numeric(X > x)
+B <- as.numeric(Y > y)
+
+# Calculate probabilities
+# a. P(X > x | Y > y)
+prob_a <- sum(X > x & Y > y) / sum(Y > y)
+# b. P(X > x, Y > y)
+prob_b <- sum(X > x & Y > y) / nrow(train)
+# c. P(X < x | Y > y)
+prob_c <- sum(X < x & Y > y) / sum(Y > y)
+
+# Create a table of counts
+counts_table <- table(X > x, Y > y)
+
+# Rename columns and rows
+colnames(counts_table) <- c("<=2d quartile", ">2d quartile")
+rownames(counts_table) <- c("<=3d quartile", ">3d quartile")
+
+# Add total row and column
+counts_table <- addmargins(counts_table, margin = 1)
+counts_table <- addmargins(counts_table, margin = 2)
+
+# Print the probabilities
+cat("Probabilities:\n")
+cat("a. P(X>x | Y>y) =", prob_a, "\n")
+cat("b. P(X>x, Y>y) =", prob_b, "\n")
+cat("c. P(X<x | Y>y) =", prob_c, "\n")
+
+# Print the table of counts with totals
+cat("\nTable of counts:\n")
+print(counts_table)
+```
+
+The probabilities are as follows:
+a. P(X>x | Y>y) = 0.4519231, which means the probability of TotalBsmtSF being greater than the 3rd quartile (1298.25) given that SalePrice is greater than the 2nd quartile (163000) is around 45.19%. 
+b. P(X>x, Y>y) = 0.2253425, which means the probability of both, TotalBsmtSF being greater than the 3rd quartile (1298.25) and SalePrice being greater than the 2nd quartile (163000) is around 22.53%.
+c. P(X<x | Y>y) = 0.5480769, which means the probability of TotalBsmtSF being less than the 3rd quartile (1298.25) given that SalePrice is greater than the 2nd quartile (163000) is around 54.81%.
+
+
+Since the probabilities of a and c are both in cases of Y > y, and their total is 1, the probability of (X=x | Y>y) must be 0. In order to confirm that, I calculated the probability and checked if the sum of the probabilities of a, c, and d is equal to 1.
+```{r}
+prob_d <- sum(X == x & Y > y) / sum(Y > y)
+prob_d
+# check if prob_a + prob_c + prob_d = 1
+prob_a + prob_c + prob_d == 1
+```
+Since they all sum up to 1, we can conclude that the probabilities are correct.
+
+Next, I will check if splitting the training data in this fashion makes them independent. I will create new variables A and B based on the conditions provided and then check if P(A|B) = P(A)P(B) both mathematically and using a Chi-Square test for association.
+```{r}
+# Create new variables A and B
+A <- as.numeric(X > x)
+B <- as.numeric(Y > y)
+
+
+# Calculate P(A|B) and P(A)P(B)
+P_A_given_B <- sum(A == 1 & B == 1) / sum(B == 1)
+P_A <- sum(A == 1) / nrow(train)
+P_B <- sum(B == 1) / nrow(train)
+
+# Check if P(A|B) = P(A)P(B)
+P_A_given_B == P_A * P_B
+```
+The result is FALSE, which means that A and B are not independent. To confirm this, I will perform a Chi-Square test for association.
+
+```{r}
+# Create a contingency table   
+contingency_table <- table(A, B)
+
+# Perform a Chi-Square test for association
+chisq.test(contingency_table)
+```
+The p-value is extremely low (2.2e-16), which means that we reject the null hypothesis that A and B are independent. Therefore, A and B are dependent.
+
+
+
+
+
+# 2- Descriptive and Inferential Statistics.
+
+**Provide univariate descriptive statistics and appropriate plots for the training data set.  Provide a scatterplot of X and Y.  Provide a 95% CI for the difference in the mean of the variables.  Derive a correlation matrix for two of the quantitative variables you selected.  Test the hypothesis that the correlation between these variables is 0 and provide a 99% confidence interval.  Discuss the meaning of your analysis.**
+
+## Answer Question #2
+
+### Descriptive Statistics
+
+First, I will provide univariate descriptive statistics and appropriate plots for the training data set. This is usually the first step in all my data analysis projects. I typically use the str() and summary() function to get a summary of the data.
+
+```{r}
+# Display the structure of the data
+str(train)
+```
+The above output gives us the structure of the data set, including the number of observations and variables, the names of the variables, and the data types of the variables.
+
+```{r}
+# Descriptive statistics
+summary(train)
+```
+
+The above output gives us the quartiles, mean, and standard deviation of the numeric columns in the data set. It also gives us the count and frequency of the categorical variables.We will further analyze these distributions using descriptive plots.
+
+### Density Plots
+
+Earlier, I plotted the density of the numeric columns to determine an appropriate variable to use as X. I will repeat that here to help get an overview of the data as a whole.
+```{r}
+# Plot the density of numeric columns
+train |>
+  keep(is.numeric) |>
+  gather(key = "variable", value = "value") |>  
+  ggplot(aes(x = value)) + 
+  geom_histogram(aes(y = after_stat(density)), bins = 20, fill = '#4E79A7', color = 'black') + 
+  stat_density(geom = "line", color = "red") +
+  facet_wrap(~ variable, scales = 'free') +
+  theme(strip.text = element_text(size = 5))
+```
+We see many right skewed variables. This is logical since many of these variables are related to the size of the house, and it is common for houses to have a right-skewed distribution of sizes. We see an ID column which doesn't impart any knowledge and really should not be treated as a numeric column. We also see a Year column which is not a numeric column but should be treated as a factor.
+
+### Boxplots
+
+Similar to above, I will create boxplots for the numeric columns to get a better understanding of the data.
+```{r}
+# Create boxplots
+train |>
+  keep(is.numeric) |>
+  gather(key = "variable", value = "value") |>  
+  ggplot(aes(x = variable, y = value)) + 
+  geom_boxplot() +
+  facet_wrap(~ variable, scales = 'free') +
+  theme(strip.text = element_text(size = 5))
+```
+The above plots show us the distribution of the numeric columns in the data set. We can see that many of the variables have many outliers, which is common in real-world data sets.
+
+### Distribution of the Categorical Variables
+
+Next, I will plot the distribution of the categorical variables in the data set.
+```{r}
+# Plot the distribution of categorical variables
+train |>
+  select_if(~ is.character(.)) |>
+  gather(key = "variable", value = "value") |>
+  ggplot(aes(x = value)) +
+  geom_bar(fill = "#4E79A7") +
+  facet_wrap(~ variable, scales = 'free') +
+  theme(strip.text = element_text(size = 5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+We see all different types of distributions among the categorical variables. Many of the variables seem to have one predominant category, while others have a more even distribution.
+
+### Missing Data
+
+We now check for missing data and visualize the values by plotting the missing data count per column in descending order.
+```{r}
+missing_data <- train %>%
+  select_if(~ any(is.na(.))) %>%
+  summarise_all(~ sum(is.na(.))) %>%
+  gather(key = "variable", value = "missing_count") %>%
+  arrange(missing_count)
+
+# Plot the missing data pattern
+missing_data %>%
+  ggplot(aes(x = reorder(variable, missing_count), y = missing_count)) +
+  geom_bar(stat = "identity", fill = "#4E79A7") +
+  labs(title = "Missing Data Pattern", x = "Variable", y = "Missing Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+```
+We can see, various columns have varying degree of missingness. These columns will need to be treated before we can proceed with the analysis. Luckily, the columns I chose as the X and Y variables do not have any missing data.
+
+### Pairplot
+
+Next, I will create a pairplot of the numeric variables to visualize the relationships between the variables. Since there are too many variables to plot and still be able to interpret the plot, I will only plot 6 numeric variables with the highest correlation with the SalePrice variable.
+
+```{r}
+# Find the 6 numeric variables with the highest correlation with SalePrice
+correlation_matrix <- cor(train[, sapply(train, is.numeric)])
+correlation_with_saleprice <- correlation_matrix["SalePrice", ]
+top_correlated_variables <- names(sort(correlation_with_saleprice, decreasing = TRUE)[2:7])
+
+# Create a pairplot of the top correlated variables plus the SalePrice variable
+train |>
+  dplyr::select(c(top_correlated_variables, "SalePrice")) |>
+  ggpairs()
+```
+
+The pairplot shows the relationships between the top 6 numeric variables with the highest correlation with the SalePrice variable. We see how each variable has positive linear relationships with the SalePrice variable. We also see how some variables have a significant relationship with each other, this is expected since many of these variables are related to the size of the house but can lead to multicollinearity in a model.
+
+
+### Scatterplot of X and Y
+Next, I will plot the scatterplot of X, TotalBsmtSF, and Y, SalePrice.
+```{r}
+# Plot the scatterplot of X and Y with a linear regression line
+ggplot(train, aes(x = TotalBsmtSF, y = SalePrice)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Scatterplot of TotalBsmtSF and SalePrice", x = "TotalBsmtSF", y = "SalePrice")
+```
+We see a clearly positive linear relationship between TotalBsmtSF and SalePrice. We also see how the linear regression line seems to be drifting further from the data points as the TotalBsmtSF increases. This illustrates the risks of predicting outside the range of the data.
+
+### CI for the Difference in the Mean of the Variables
+
+I am unsure what exactly is meant by the difference in the mean of the variables. I will simply calculate the difference in means between TotalBsmtSF and SalePrice and calculate the 95% confidence interval for this difference. But since these variables are on different scales, I am not sure how meaningful this analysis will be.
+
+Afterwards, I will calculate the difference in means of the TotalBsmtSF when above and below the median of SalePrice and calculate the 95% confidence interval. This will give us a better understanding of the relationship between the two variables and seems like a more ilely interpretation of the assignment.
+```{r}
+# Calculate the 95% confidence interval for the difference in the mean of the variables
+X_mean <- mean(X)
+Y_mean <- mean(Y)
+X_sd <- sd(X)
+Y_sd <- sd(Y)
+n <- length(X)
+m <- length(Y)
+# Calculate the standard error
+SE <- sqrt((X_sd^2 / n) + (Y_sd^2 / m))
+# Calculate the margin of error
+ME <- qt(0.975, df = n + m - 2) * SE
+# Calculate the confidence interval
+CI <- c((X_mean - Y_mean) - ME, (X_mean - Y_mean) + ME)
+CI
+```
+The 95% Confidence Interval for the difference in means is between -183940.5 and -175787.0. This means that we are 95% confident that the difference in means between TotalBsmtSF and SalePrice is between -183940.5 and -175787.0.
+
+I will double check my work using the t-test function in R.
+```{r}
+# Perform t-test
+t_test_result <- t.test(X, Y)
+# Calculate the confidence interval for the difference in means
+ci <- t_test_result$conf.int
+# Print the confidence interval
+ci
+```
+We achieved the same results using the t-test function in R.
+
+As mentioned above, I will calculate the difference in means of the TotalBsmtSF when above and below the median of SalePrice.
+```{r}
+# Calculate the difference in means of TotalBsmtSF when above and below the median of SalePrice
+median_saleprice <- median(Y)
+# Calculate the 95% confidence interval for the difference in the mean of TotalBsmtSF when above and below the median of SalePrice
+X_below_median <- X[Y <= median_saleprice]
+X_above_median <- X[Y > median_saleprice]
+n_below <- length(X_below_median)
+n_above <- length(X_above_median)
+mean_below <- mean(X_below_median)
+mean_above <- mean(X_above_median)
+sd_below <- sd(X_below_median)
+sd_above <- sd(X_above_median)
+# Calculate the standard error
+SE <- sqrt((sd_below^2 / n_below) + (sd_above^2 / n_above))
+# Calculate the margin of error
+ME <- qt(0.975, df = n_below + n_above - 2) * SE
+# Calculate the confidence interval
+CI <- c((mean_below - mean_above) - ME, (mean_below - mean_above) + ME)
+CI
+# Observed difference in means
+mean_below - mean_above
+```
+
+Again, I will double check my work using the t-test function in R.
+```{r}
+# Perform t-test
+t_test_result <- t.test(X_below_median, X_above_median)
+# Calculate the confidence interval for the difference in means
+ci <- t_test_result$conf.int
+# Print the confidence interval
+ci
+```
+
+The 95% Confidence Interval for the difference in means of TotalBsmtSF when above and below the median of SalePrice is between -424.96 and -343.92. This means that we are 95% confident that the difference in means between TotalBsmtSF when above and below the median of SalePrice is between -424.96 and -343.92. This tracks with the observed -384.44 difference in means.
+
+### Correlation Matrix
+
+Next, I will derive a correlation matrix for two of the quantitative variables I selected and test the hypothesis that the correlation between these variables is 0. I will also calculate the 99% confidence interval for the correlation.
+```{r}
+# Derive a correlation matrix for two of the quantitative variables you selected
+correlation_matrix <- cor(train[, c("TotalBsmtSF", "SalePrice")])
+correlation_matrix
+```
+The correlation between TotalBsmtSF and SalePrice is 0.61, which indicates a strong positive linear relationship between the two variables. This reinforces what we saw in the scatterplot.
+
+```{r}
+# Calculate correlation coefficient
+correlation_coefficient <- cor(X, Y)
+# Sample size
+n <- length(X)
+# Degrees of freedom
+df <- n - 2
+# Manual calculation of t-statistic
+t_statistic <- correlation_coefficient * sqrt(df) / sqrt(1 - correlation_coefficient^2)
+# Manual calculation of p-value
+p_value <- 2 * pt(-abs(t_statistic), df)
+
+# Calculate 99% confidence interval using Fisher transformation to get the z-score
+r_transform <- 0.5 * log((1 + correlation_coefficient) / (1 - correlation_coefficient))
+CI_lower <- tanh(r_transform - qnorm(0.995) / sqrt(n - 3))
+CI_upper <- tanh(r_transform + qnorm(0.995) / sqrt(n - 3))
+
+# Print the results
+cat("Correlation Coefficient:", correlation_coefficient, "\n")
+cat("t-statistic:", t_statistic, "\n")
+cat("p-value:", p_value, "\n")
+cat("99% Confidence Interval:", CI_lower, "-", CI_upper, "\n")
+```
+Here, I verified that the correlation coefficient is 0.61, which is the same as the correlation matrix. The t-statistic is 29.67, and the p-value is extremely low, which means we reject the null hypothesis that the correlation between TotalBsmtSF and SalePrice is 0. The 99% confidence interval for the correlation is between 0.57 and 0.65, which means we are 99% confident that the correlation between TotalBsmtSF and SalePrice is between 0.57 and 0.65. This fits our observed correlation of 0.61.
+
+Now, I double check my work using the cor.test function in R.
+```{r}
+# Calculate the correlation coefficient
+correlation <- cor(X, Y)
+
+# Perform the hypothesis test and obtain the 99% confidence interval
+test_result <- cor.test(X, Y, method = "pearson", conf.level = 0.99)
+
+# Print the test result
+print(test_result)
+```
+We achieved the same results using the cor.test function in R. (I am unsure why the p-value is different, but the correlation coefficient and confidence interval are the same, and both p-values are extremely low).
+
+I will repeat the above analysis for each of the 6 variables most correlated with the SalePrice variable.
+```{r}
+# Calculate the correlation matrix for the top correlated variables with SalePrice
+correlation_matrix_top <- cor(train[, c(top_correlated_variables, "SalePrice")])
+correlation_matrix_top
+```
+The correlation matrix shows the correlation between the top 6 variables and the SalePrice variable. We see that all the variables have a positive correlation with the SalePrice variable, which is expected since they are the top correlated variables. We also see relatively strong correlations with each other as noted above. Overall, the matrix reinforces what we saw in the pairplot.
+
+```{r}
+# Create an empty dataframe to store the results
+results_df <- data.frame(variable = character(), observed_correlation = numeric(),
+                         CI_lower = numeric(), CI_upper = numeric(), stringsAsFactors = FALSE)
+
+# Create a dataframe to store the correlation coefficients for the top correlated variables
+correlation_coefficients <- cor(train[, c(top_correlated_variables, "SalePrice")])
+
+# Iterate over each variable and perform hypothesis testing
+for (variable in top_correlated_variables) {
+  # Perform Pearson correlation test
+  test_result <- cor.test(train[[variable]], train$SalePrice, method = "pearson", conf.level = 0.99)
+  
+  # Extract information from test result
+  observed_correlation <- correlation_coefficients[variable, "SalePrice"]
+  CI_lower <- test_result$conf.int[1]
+  CI_upper <- test_result$conf.int[2]
+  
+  # Append results to dataframe
+  results_df <- rbind(results_df, data.frame(variable = variable,
+                                              observed_correlation = observed_correlation,
+                                              CI_lower = CI_lower,
+                                              CI_upper = CI_upper))
+}
+
+# Print the results dataframe
+print(results_df)
+```
+The results dataframe shows the observed correlation between each of the top 6 variables and the SalePrice variable, as well as the 99% confidence interval for the correlation. We see that all the variables have a strong positive correlation with the SalePrice variable, and the confidence intervals are relatively tight. This reinforces what we saw in the pairplot and the correlation matrix.
+
+
+
+# 3-Linear Algebra and Correlation.
+
+**Invert your correlation matrix. (This is known as the precision matrix and contains variance inflation factors on the diagonal.) Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix. Conduct principle components analysis (research this!)  and interpret.  Discuss.**
+
+## Answer Question #3
+
+### Invert the Correlation Matrix
+
+First, I will invert the correlation matrix to obtain the precision matrix. The precision matrix contains variance inflation factors on the diagonal.
+```{r}
+# Invert the correlation matrix
+precision_matrix <- solve(correlation_matrix)
+precision_matrix
+```
+
+### Multiply the Correlation Matrix by the Precision Matrix
+
+Next, I will multiply the correlation matrix by the precision matrix.
+```{r}
+# Multiply the correlation matrix by the precision matrix
+correlation_matrix * precision_matrix
+```
+
+### Multiply the Precision Matrix by the Correlation Matrix
+
+Finally, I will multiply the precision matrix by the correlation matrix.
+```{r}
+# Multiply the precision matrix by the correlation matrix
+precision_matrix * correlation_matrix
+```
+
+### Principal Components Analysis
+
+Next, I will conduct principal components analysis (PCA) on the correlation matrix. PCA is a technique used to reduce the dimensionality of the data by transforming the data into a new coordinate system. It does this by finding the principal components, which are the directions in which the data varies the most. I will use the prcomp function in R to perform PCA.
+```{r}
+# Perform PCA
+pca_result <- prcomp(train[, c("TotalBsmtSF", "SalePrice")], scale = TRUE)
+# Print the PCA result
+summary(pca_result)
+pca_result
+```
+The summary of the PCA result shows the standard deviation of the principal components, the proportion of variance explained by each principal component, and the cumulative proportion of variance explained. The first principal component explains 80.68% of the variance, while the second principal component explains 19.32% of the variance. Together, the two principal components explain 100% of the variance.
+The PCA result shows the principal components, the standard deviation of the principal components, and the rotation matrix. The rotation matrix shows how the original variables are related to the principal components. The first principal component is a linear combination of the original variables that maximizes the variance. The second principal component is orthogonal to the first principal component and captures the remaining variance.
+
+Now I will perform PCA on the complete rows of all the numeric columns of the dataframe. I will remove any binary variables in the dataset since they will not contribute to the PCA analysis.
+
+Before continuing with the PCA analysis, I will impute missing values for the numeric columns. This is to help build the models later on. I will utilize the MICE package to impute the missing values using the mice function. Before doing that, though, I will split the data into training and testing sets to avoid data leakage.
+
+### Train/Test Split
+
+Earlier, I noticed some columns with a majority of their values missing. I will remove all the columns with more than 50% missing values from the imputation process and not use any of these columns in the modelling either. I will also remove all the character columns from the data since PCA only works with numeric data (and this simplifies the imputation process)
+
+```{r}
+# Remove columns with more than 50% missing values
+missing_values <- sapply(train, function(x) sum(is.na(x)))
+cols_to_remove <- names(missing_values[missing_values > 0.5 * nrow(train)]) 
+train <- train[, !colnames(train) %in% cols_to_remove]
+eval <- eval[, !colnames(eval) %in% cols_to_remove]
+
+# Remove all the character columns
+train <- train[, sapply(train, is.numeric)]
+eval <- eval[, sapply(eval, is.numeric)]
+```
+
+```{r}
+# Split the data into training and testing sets
+set.seed(1125)
+train_index <- createDataPartition(train$SalePrice, p = 0.8, list = FALSE, times = 1)
+train <- train[train_index, ]
+test <- train[-train_index, ]
+```
+
+
+### Data Imputation
+
+The MICE package provides a flexible and easy-to-use method for imputing missing values in a dataset. I will use the mice function to impute the missing values in the numeric columns of the training set. Since the target variable should not be used for imputation, I will exclude the SalePrice variable from the imputation process.
+
+```{r}
+# Remove the SalePrice variable from the training and testing sets
+train_no_target <- train[, !colnames(train) %in% c("SalePrice")]
+test_no_target <- test[, !colnames(test) %in% c("SalePrice")]
+
+# Combine for imputation
+combined_data <- rbind(train_no_target, test_no_target, eval)
+
+# Create a data type variable to indicate whether the data is from the training, testing, or evaluation set
+data_type <- c(rep("train", nrow(train)), 
+               rep("test", nrow(test)),
+               rep("eval", nrow(eval)))
+
+# Function to impute missing values
+impute_func <- function(data, data_type) {
+    ini <- mice(data, maxit = 0, ignore = data_type != "train")
+    meth <- ini$meth
+    imputed_object <- mice(data, method = meth, m = 1, maxit = 30, seed = 1125, print = FALSE)
+    imputed_data <- complete(imputed_object, 1)
+    print(meth)
+    
+    return(list(imputed_object = imputed_object, imputed_data = imputed_data))
+}
+
+# Call function
+results <- impute_func(combined_data, data_type)
+
+# Reintegrate the target variable
+reintegrate_targets <- function(imputed_data, original_data, target_vars) {
+  target_data <- original_data[, target_vars, drop = FALSE]
+  cbind(imputed_data, target_data)
+}
+
+# Combine original data
+full_combined_data <- rbind(train, test)
+
+# Reintegrate target
+imputed_data_with_targets <- reintegrate_targets(results$imputed_data[data_type != "eval", ], full_combined_data, "SalePrice")
+
+# Split the data back into training, testing, and evaluation sets
+train_imputed <- imputed_data_with_targets[data_type == "train", ]
+test_imputed <- imputed_data_with_targets[data_type == "test", ]
+eval_imputed <- results$imputed_data[data_type == "eval", ]
+
+# Remove the extra columns
+cols_to_remove <- c(".imp", ".id")
+train_imputed <- train_imputed[, !colnames(train_imputed) %in% cols_to_remove]
+test_imputed <- test_imputed[, !colnames(test_imputed) %in% cols_to_remove]
+eval_imputed <- eval_imputed[, !colnames(eval_imputed) %in% cols_to_remove]
+```
+
+To confirm that the imputation was successful, I will check the dimensions of the imputed dataframes and compare them to the original dataframes.
+```{r}
+dim(train_imputed)
+dim(test_imputed)
+dim(eval_imputed)
+
+dim(train)
+dim(test)
+dim(eval)
+```
+
+The dimensions of the imputed dataframes match the dimensions of the original dataframes, which indicates that the imputation was successful.
+
+Next I will check if there are any missing values in the imputed dataframes to ensure that the imputation was successful.
+```{r}
+# Check for missing values in the imputed dataframes
+sum(is.na(train_imputed))
+sum(is.na(test_imputed))
+sum(is.na(eval_imputed))
+```
+There are now no missing values in any of the imputed dataframes, which confirms that the imputation was successful. It is important to note that the dataframes all had the character columns removed along with columns with more than 50% missing values before the imputation process.
+
+### Principal Components Analysis
+
+```{r}
+pca_result_all <- train_imputed %>%
+  select_if(function(col) length(unique(col)) > 2) %>%  # Exclude binary variables
+  prcomp(scale = TRUE)  # Perform PCA
+
+# Summary of PCA result
+summary(pca_result_all)
+```
+
+The summary of the PCA result shows that 18 principal components contain 80% of the variance, 23 principal components contain 90% of the variance, 27 principal components contain 95% of the variance, and 33 principal components contain 99% of the variance. This means that we can reduce the dimensionality of the data from 38 variables to those 18, 23, 27, or 33 principal components while retaining their respective percentages of variance.
+I will store the PCA components of each of the above thresholds as a variable for potential use in later modeling.
+```{r}
+# Store the PCA components for each threshold
+pca_components_80 <- pca_result_all$x[, 1:18]
+pca_components_90 <- pca_result_all$x[, 1:23]
+pca_components_95 <- pca_result_all$x[, 1:27]
+pca_components_99 <- pca_result_all$x[, 1:33]
+```
+
+
+# 4-Calculus-Based Probability & Statistics.
+
+**Many times, it makes sense to fit a closed form distribution to data. For your variable that is skewed to the right, shift it so that the minimum value is above zero. Then load the MASS package and run fitdistr to fit an exponential probability density function. (See <https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/fitdistr.html> ). Find the optimal value of** $\lambda$ **for this distribution, and then take 1000 samples from this exponential distribution using this value (e.g., rexp(1000, $\lambda$)). Plot a histogram and compare it with a histogram of your original variable. Using the exponential pdf, find the 5th and 95th percentiles using the cumulative distribution function (CDF). Also generate a 95% confidence interval from the empirical data, assuming normality. Finally, provide the empirical 5th percentile and 95th percentile of the data. Discuss.**
+
+## Answer Question #4
+
+### Fit an Exponential Probability Density Function
+
+First, I will shift the variable that is skewed to the right so that the minimum value is above zero. I have saved the TotalBsmtSF variable as X.
+
+```{r}
+# Shift the variable so that the minimum value is above zero
+X_shifted <- X - min(X) + 0.1
+```
+
+Next, I will fit an exponential probability density function to the shifted variable using the fitdistr function from the MASS package. I will find the optimal value of $\lambda$ for this distribution.
+
+```{r}
+# Fit an exponential probability density function to the shifted variable
+fit <- fitdistr(X_shifted, densfun = "exponential")
+# Optimal value of lambda
+lambda <- fit$estimate
+lambda
+```
+
+### Generate Samples from the Exponential Distribution and Plot Histograms
+
+Next, I will take 1000 samples from this exponential distribution using the optimal value of $\lambda$ and plot a histogram to compare it with a histogram of the original variable. I will add vertical lines for the mean and mode of both the original variable and the exponential distribution. This will aid in visualizing the differences between the two distributions.
+
+```{r}
+# Take 1000 samples from the exponential distribution
+set.seed((1125))
+samples <- rexp(1000, lambda)
+
+# Calculate mean and mode of the original variable
+mean_original <- mean(X_shifted)
+mode_original <- density(X_shifted)$x[which.max(density(X_shifted)$y)]
+
+# Calculate mean and mode of the exponential distribution
+mean_exponential <- 1 / lambda  # Mean of exponential distribution is 1 / lambda
+mode_exponential <- 0  # Mode of exponential distribution is always 0
+
+# Plot a histogram of the original variable and the exponential distribution
+ggplot() +
+  geom_histogram(aes(X_shifted, fill = "Original Variable"), bins = 30, alpha = 0.7) +
+  geom_histogram(aes(samples, fill = "Exponential Distribution"), bins = 30, alpha = 0.7) +
+  geom_vline(xintercept = mean_original, linetype = "dashed", color = "blue", size = 1) +  # Mean line (original)
+  geom_vline(xintercept = mode_original, linetype = "dashed", color = "red", size = 1) +   # Mode line (original)
+  geom_vline(xintercept = mean_exponential, linetype = "dotted", color = "green", size = 1) +  # Mean line (exponential)
+  geom_vline(xintercept = mode_exponential, linetype = "dotted", color = "purple", size = 1) +  # Mode line (exponential)
+  labs(title = "Histogram of Original Variable and Exponential Distribution", x = "Value", y = "Frequency") +
+  scale_fill_manual(values = c("#4E79A7", "#F28E2B"), 
+                    labels = c("Original Variable", "Exponential Distribution"))
+```
+
+The above plot shows the histogram of the original variable and the exponential distribution. The blue dashed line represents the mean of the original variable, the red dashed line represents the mode of the original variable, the green dotted line represents the mean of the exponential distribution, and the purple dotted line represents the mode of the exponential distribution. We see the mean of both the original variable and the exponential distribution are the same, while the mode of the original variable is very different from the mode of the exponential distribution. This is expected since the exponential distribution is unimodal with a mode of 0 and we know we set the minimum value of the shifted variable to be above 0. 
+
+Based on the above plots, it seems like the exponential distribution does not fit the original variable very well. While the mean stays the same, the overall distribution is very different.
+
+### Find the 5th and 95th Percentiles Using the Exponential CDF
+
+Next, I will use the exponential probability density function to find the 5th and 95th percentiles using the cumulative distribution function (CDF).
+
+```{r}
+# Find the 5th and 95th percentiles using the exponential CDF
+percentile_5 <- qexp(0.05, rate = lambda)
+percentile_95 <- qexp(0.95, rate = lambda)
+percentile_5
+percentile_95
+```
+
+The 5th percentile of the exponential distribution is 54.24 and the 95th percentile is 3168.08. This means that 90% of the exponential distribution falls between 54.24 and 3168.08.
+
+### Generate a 95% Confidence Interval from the Empirical Data
+
+Next, I will generate a 95% confidence interval from the empirical data, assuming normality. For this section, I will use the original variable X, not the shifted variable X_shifted. But the difference in the CIs should be almost irrelevant since the original shift barely moved the data.
+
+```{r}
+# Calculate the standard error
+SE <- sd(X) / sqrt(length(X))
+# Calculate the margin of error
+ME <- qt(0.975, df = length(X) - 1) * SE
+# Calculate the confidence interval
+CI <- c(mean(X) - ME, mean(X) + ME)
+CI
+```
+The 95% Confidence Interval for the original variable X is between 1034.9 and 1079.95. This means that we are 95% confident that the mean of the original variable X is between 1034.9 and 1079.95.
+As before, I will double check our work using the t-test function in R.
+
+```{r}
+# Generate a 95% confidence interval assuming normality
+conf_interval <- t.test(X)$conf.int
+# Print the confidence interval
+cat("95% Confidence Interval (Normality assumption): [", conf_interval[1], ",", conf_interval[2], "]\n")
+```
+The results are the same as before.
+
+### Empirical 5th and 95th Percentiles of the Data
+
+Finally, I will calculate the empirical 5th and 95th percentiles of the original variable X.
+
+```{r}
+# Calculate the 5th and 95th percentiles for variable "X"
+percentile_5th <- quantile(X, probs = 0.05)
+percentile_95th <- quantile(X, probs = 0.95)
+percentile_5th
+percentile_95th
+```
+The empirical 5th percentile of the original variable X is 519.3 and the 95th percentile is 1753. This means that 90% of the data falls between 519.3 and 1753.
+
+
+# 5-Modeling.
+
+**Build some type of regression  model and submit your model to the competition board.  Provide your complete model summary and results with analysis.  Report your Kaggle.com  user name and score.**
+
+## Answer Question #5
+
+### Build a Regression Model
+
+For this question, I will build a linear regression model to predict the SalePrice variable using the TotalBsmtSF variable. These were selected in the previous sections as the X and Y variables. I will then build a regression model using all the numeric variables, a regression model using the top correlated variables, and regression models using the PCA components. I will predict the SalePrice variable against the testing set and calculate the RMSE and R-squared values for each model.
+
+```{r}
+# Build a linear regression model
+model <- lm(SalePrice ~ TotalBsmtSF, train_imputed)
+# Print the model summary
+summary(model)
+```
+
+```{r}
+# Build a regression model using all the numeric variables
+model_all <- lm(SalePrice ~ ., train_imputed)
+# Print the model summary
+summary(model_all)
+```
+
+```{r}
+# Build a regression model using the top correlated variables
+model_top <- lm(SalePrice ~ ., train_imputed[, c(top_correlated_variables, "SalePrice")])
+# Print the model summary
+summary(model_top)
+```
+
+```{r}
+# Build a regression model using the PCA components
+pca_80 <- cbind(SalePrice = train_imputed$SalePrice, pca_components_80)
+
+model_pca_80 <- lm(SalePrice ~ ., as.data.frame(pca_80))
+# Print the model summary
+summary(model_pca_80)
+```
+
+```{r}
+# Build a regression model using the PCA components
+pca_90 <- cbind(SalePrice = train_imputed$SalePrice, pca_components_90)
+
+model_pca_90 <- lm(SalePrice ~ ., as.data.frame(pca_90))
+# Print the model summary
+summary(model_pca_90)
+```
+
+```{r}
+# Build a regression model using the PCA components
+pca_95 <- cbind(SalePrice = train_imputed$SalePrice, pca_components_95)
+
+model_pca_95 <- lm(SalePrice ~ ., as.data.frame(pca_95))
+# Print the model summary
+summary(model_pca_95)
+```
+
+```{r}
+# Build a regression model using the PCA components
+pca_99 <- cbind(SalePrice = train_imputed$SalePrice, pca_components_99)
+
+model_pca_99 <- lm(SalePrice ~ ., as.data.frame(pca_99))
+# Print the model summary
+summary(model_pca_99)
+```
+
+# Predict all the above models against the testing set
+
+First I need to perform the same PCA on the testing set as I did on the training set. I will use the same PCA components as I did on the training set.
+
+```{r}
+# Perform PCA on the testing set
+pca_test <- prcomp(test_imputed, scale = TRUE)
+# Add the PCA components to the testing set
+test_imputed <- cbind(test_imputed, pca_test$x)
+```
+
+
+```{r}
+# Predict the SalePrice using the linear regression model
+predictions <- predict(model, test_imputed)
+# Calculate the RMSE
+rmse_model1 <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+
+predictions <- predict(model_all, test_imputed)
+# Calculate the RMSE
+rmse_model_all <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+
+predictions <- predict(model_top, test_imputed)
+# Calculate the RMSE
+rmse_model_top <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+
+predictions <- predict(model_pca_80, test_imputed)
+# Calculate the RMSE
+rmse_model_pca_80 <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+
+predictions <- predict(model_pca_90, test_imputed)
+# Calculate the RMSE
+rmse_model_pca_90 <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+
+predictions <- predict(model_pca_95, test_imputed)
+# Calculate the RMSE
+rmse_model_pca_95 <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+
+predictions <- predict(model_pca_99, test_imputed)
+# Calculate the RMSE
+rmse_model_pca_99 <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+
+# Combine all the models rmse and r-squared into one dataframe
+model_results <- data.frame(Model = c("TotalBsmtSF", "All Numeric Variables", "Top Correlated Variables", "PCA 80", "PCA 90", "PCA 95", "PCA 99"),
+                             RMSE = c(rmse_model1, rmse_model_all, rmse_model_top, rmse_model_pca_80, rmse_model_pca_90, rmse_model_pca_95, rmse_model_pca_99),
+                             R_squared = c(summary(model)$r.squared, summary(model_all)$r.squared, summary(model_top)$r.squared, summary(model_pca_80)$r.squared, summary(model_pca_90)$r.squared, summary(model_pca_95)$r.squared, summary(model_pca_99)$r.squared),
+                             AIC = c(AIC(model), AIC(model_all), AIC(model_top), AIC(model_pca_80), AIC(model_pca_90), AIC(model_pca_95), AIC(model_pca_99)))
+
+model_results
+```
+
+Using the above table allows me to easily see that including more than the PCA components of the top 80% of the variance does not improve the model. This allows us to eliminate the extra PCA models. The model with the lowest AIC was the model using the top correlated variables. The model with the lowest RMSE was the model using all the numeric variables. The model with the highest R-squared was the PCA model. I will work on improving all three of these models and see which we can improve the most.
+
+We start with adding a backwards elimination to the model using all the numeric variables. This will allow us to simplify what is likely the most complicated model with the most variables and reduces the need for PCA since it reduces multicollinearity
+
+```{r}
+# Perform backwards elimination on the model using all the numeric variables
+model_all_backwards <- step(model_all)
+# Print the model summary
+summary(model_all_backwards)
+```
+This summary is encouraging. The model only has a very slightly lower R-squared value, but the amount of variables has been reduced from 37 to 20. This will likely help with overfitting and multicollinearity. I will now check the VIF of the model to ensure that multicollinearity is not an issue.
+
+```{r}
+library(car)
+#Check VIF of the model
+vif(model_all_backwards)
+```
+While much better than before, there are still some variables with VIFs higher than I would like, including one just barely above 5. However, when I attempted to remove some of these variables, the loss in R-squared was large. Since this model's goal is overall prediction, and not necessarily understanding the relationships between the variables, I will keep the model as is.
+
+Next, I will work on performing a backwards elimination manually to see if I reach simialr results.
+
+```{r}
+# Perform backwards elimination manually on the model using all the numeric variables
+model_all_manual <- lm(SalePrice ~ ., train_imputed)
+# Print the model summary
+summary(model_all_manual)
+```
+
+I first remove the variables with perfect multicollinearity. 
+
+```{r}
+# Remove variables with perfect multicollinearity
+model_all_manual <- update(model_all_manual, . ~ . - TotalBsmtSF - GrLivArea)
+# Print the model summary
+summary(model_all_manual)
+```
+
+Next we reomove some variables with high p-values. ID should have been dropped right away. I will remove ID and LotArea
+
+```{r}
+# Remove variables with high p-values
+model_all_manual <- update(model_all_manual, . ~ . - Id - LotArea)
+# Print the model summary
+summary(model_all_manual)
+```
+
+Notably, the r-squared didn't change much. I will now remove the next two highest p-values, which are BsmtHalfBath and X3SsnPorch
+
+```{r}
+# Remove variables with high p-values
+model_all_manual <- update(model_all_manual, . ~ . - BsmtHalfBath - X3SsnPorch)
+# Print the model summary
+summary(model_all_manual)
+```
+
+Again, the r-squared didn't change much. I will now remove the next two highest p-values, which are GarageYrBlt and Fireplaces.
+
+```{r}
+# Remove variables with high p-values
+model_all_manual <- update(model_all_manual, . ~ . - GarageYrBlt - Fireplaces)
+# Print the model summary
+summary(model_all_manual)
+```
+
+Again, the r-squared didn't change much but fewer and fewer variables. I will now remove the next two highest p-values, which are MoSold and YrSold.
+
+```{r}
+# Remove variables with high p-values
+model_all_manual <- update(model_all_manual, . ~ . - MoSold - YrSold)
+# Print the model summary
+summary(model_all_manual)
+```
+
+Again, the r-squared didn't change much. I will now remove the next two highest p-values, which are MiscVal and BsmtFullBath.
+
+```{r}
+# Remove variables with high p-values
+model_all_manual <- update(model_all_manual, . ~ . - MiscVal - BsmtFullBath)
+# Print the model summary
+summary(model_all_manual)
+```
+
+Again, the r-squared didn't change much. I will now remove the next two highest p-values, which are FullBath and GarageCars.
+
+```{r}
+# Remove variables with high p-values
+model_all_manual <- update(model_all_manual, . ~ . - FullBath - GarageCars)
+# Print the model summary
+summary(model_all_manual)
+```
+
+Again, the r-squared didn't change much. I will now remove the next two highest p-values, which are EnclosedPorch and LowQualFinSF.
+
+```{r}
+# Remove variables with high p-values
+model_all_manual <- update(model_all_manual, . ~ . - EnclosedPorch - LowQualFinSF)
+# Print the model summary
+summary(model_all_manual)
+```
+
+Again, the r-squared didn't change much. I will now remove the next highest p-value, which is OpenPorchSF.
+
+```{r}
+# Remove variables with high p-values
+model_all_manual <- update(model_all_manual, . ~ . - OpenPorchSF)
+# Print the model summary
+summary(model_all_manual)
+```
+
+Again, the r-squared didn't change much. I will now remove the next highest p-value, which is ScreenPorch.
+
+```{r}
+# Remove variables with high p-values
+model_all_manual <- update(model_all_manual, . ~ . - ScreenPorch)
+# Print the model summary
+summary(model_all_manual)
+```
+
+All the predictors now have statistically significant p-values. Interestingly, only the last elimination made the manual model different than the backwards elimination model. Also, notable, the r-squared for eliminated model is practiacally the same as the original model with all the  numeric variables. Even though, as mentioned, this model's purpose is prediction, having a model with fewer variables is always better and less prone to overfitting. I will kepp this model as the final iteration of the model using all the numeric variables.
+
+Next, I will work on improving the PCA model.
+
+First, lets add a pca model with just the first two components.
+
+```{r}
+# Build a regression model using the first 2 PCA components
+pca_2 <- cbind(SalePrice = train_imputed$SalePrice, pca_result_all$x[, 1:2])
+
+model_pca_2 <- lm(SalePrice ~ ., as.data.frame(pca_2))
+# Print the model summary
+summary(model_pca_2)
+```
+
+Now I will build a PCA model using backwards elimination on all the principal components.
+
+```{r}
+# Perform backwards elimination on the model using all the principal components
+model_pca_backwards <- step(model_pca_99)
+# Print the model summary
+summary(model_pca_backwards)
+```
+
+Lets remove the principal components with p values above 0.01.
+
+```{r}
+model_pca_backwards <- update(model_pca_backwards, . ~ . - PC11 - PC14 - PC19 - PC23 - PC29)
+# Print the model summary
+summary(model_pca_backwards)
+```
+
+```{r}
+predictions <- predict(model_all_manual, test_imputed)
+# Calculate the RMSE
+rmse_model_all_manual <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+
+predictions <- predict(model_pca_2, test_imputed)
+# Calculate the RMSE
+rmse_model_pca_2 <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+
+predictions <- predict(model_pca_backwards, test_imputed)
+# Calculate the RMSE
+rmse_model_pca_backwards <- sqrt(mean((test_imputed$SalePrice - predictions)^2))
+```
+
+```{r}
+# Combine all the models rmse and r-squared into one dataframe
+model_results_new <- data.frame(Model = c("Backwards Elimination", "Top Correlated Variables", "PCA 80", "PCA 2", "PCA Backwards"),
+                             RMSE = c(rmse_model_all_manual, rmse_model_top, rmse_model_pca_80, rmse_model_pca_2, rmse_model_pca_backwards),
+                             R_squared = c(summary(model_all_manual)$r.squared, summary(model_top)$r.squared, summary(model_pca_80)$r.squared, summary(model_pca_2)$r.squared, summary(model_pca_backwards)$r.squared),
+                             F_statistic = c(summary(model_all_manual)$fstatistic[1], summary(model_top)$fstatistic[1], summary(model_pca_80)$fstatistic[1], summary(model_pca_2)$fstatistic[1], summary(model_pca_backwards)$fstatistic[1]),
+                             AIC = c(AIC(model_all_manual), AIC(model_top), AIC(model_pca_80), AIC(model_pca_2), AIC(model_pca_backwards)),
+                             BIC = c(BIC(model_all_manual), BIC(model_top), BIC(model_pca_80), BIC(model_pca_2), BIC(model_pca_backwards)))
+
+model_results_new
+```
+
+Since the primary goal of this model is prediction, the model with the lowest RMSE is the best model. The model with the lowest RMSE is the model using backwards elimination on all the numeric variables. While the backwards PCA model has a significantly higher r-squared and F-statistic, along with the lowest AIC and BIC, the RMSE is the most important metric for this model and the PCA models seem to perform terribly for prediction. We will select the backwards elimination model as the final model.
+
+# Predict the Evaluation Set using the Final Model
+
+```{r}
+# Predict the SalePrice using the final model
+predictions <- predict(model_all_manual, eval_imputed)
+# Save the predictions to a CSV file
+submission <- data.frame(Id = eval$Id, SalePrice = predictions)
+write.csv(submission, file = "submission.csv", row.names = FALSE)
+```
+
+```{r}
+# Add PCA to the eval set
+pca_eval <- prcomp(eval_imputed, scale = TRUE)
+eval_imputed <- cbind(eval_imputed, pca_eval$x)
+# Predict using the PCA model
+predictions <- predict(model_pca_backwards, eval_imputed)
+# Save the predictions to a CSV file
+submission <- data.frame(Id = eval$Id, SalePrice = predictions)
+write.csv(submission, file = "submission_pca.csv", row.names = FALSE)
+```
+
+# Kaggle Submission
+Kaggle User Name is Shaya Engelman. The Kaggle score for the final model was 0.36307. Not a great score, but factoring in that I didn't include any of the categorical values (and neighborhood, for example, is obviously an important predictor of house price), it's not terrible. I would love to revisit this competition when I have more time to add categorical variables and improve my model.

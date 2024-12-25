@@ -1,0 +1,249 @@
+---
+title: "HW 15"
+author: "Shaya Engelman"
+date: \today
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+# 1.
+
+Find the equation of the regression line for the given points.
+Round any final values to the nearest hundredth, if necessary.
+$$ ( 5.6, 8.8 ), ( 6.3, 12.4 ), ( 7, 14.8 ), ( 7.7, 18.2 ), ( 8.4, 20.8 ) $$
+
+```{r}
+x <- c(5.6, 6.3, 7, 7.7, 8.4)
+y <- c(8.8, 12.4, 14.8, 18.2, 20.8)
+
+lm(y ~ x)
+```
+
+The equation of the regression line is $y = 4.26x - 14.8$
+
+
+# 2.
+
+Find all local maxima, local minima, and saddle points for the function given below.
+Write your answer(s) in the form $( x, y, z )$.
+Separate multiple points with a comma.
+$$ f ( x, y ) = 24x - 6xy^2 - 8y^3 $$
+
+To solve this we find the critical points by taking the partial derivatives of the function and setting them equal to zero.
+$$ f_x = 24 - 6y^2 = 0 $$
+$$ 24 = 6y^2 $$
+$$ y^2 = 4 $$
+$$ y = \pm 2 $$
+
+$$ f_y = -12xy - 24y^2 = 0 $$
+$$ -12xy - 24y^2 = 0 $$
+$$ -12x - 24y = 0 $$
+$$ -12x = 24y $$
+$$ x = -2y $$
+$$ x = -2(\pm 2) $$
+$$ x = \pm 4 $$
+
+Now we plug the critical points into the original function to find the $z$ values.
+
+```{r}
+equation = function(x,y){
+  z = 24*x - 6*x*y^2 - 8*y^3
+  return(c(x,y,z))
+}
+print(rbind(equation(-4,2),equation(4,-2)))
+```
+
+So the critical points are $(-4, 2, -64)$ and $(4, -2, 64)$.
+
+Now we need to find the second partial derivatives to determine the nature of the critical points.
+
+$ f_{xx} = 0$ and $f_{yy} = -12x - 48y$ and $f_{xy} = -12y$
+$$ D = f_{xx}f_{yy} - f_{xy}^2 $$
+$$ D = 0(-12x - 48y) - (-12y)^2 $$
+$$ D = 144y^2 $$
+Since $D < 0$, the critical points are saddle points.
+
+# 3.
+
+A grocery store sells two brands of a product, the "house" brand and a "name" brand.
+The manager estimates that if she sells the "house" brand for $x$ dollars and the "name" brand for $y$ dollars, she will be able to sell $81 - 21x + 17y$ units of the "house" brand and $40 + 11x - 23y$ units of the "name" brand.
+
+**Step 1.** Find the revenue function $R ( x, y )$.
+
+The revenue function is given by the product of the price and the quantity sold.
+$$ R ( x, y ) = x(81 - 21x + 17y) + y(40 + 11x - 23y) $$
+$$ R ( x, y ) = 81x - 21x^2 + 17xy + 40y + 11xy - 23y^2 $$
+$$ R ( x, y ) = -21x^2 + 28xy - 23y^2 + 81x + 40y $$
+
+
+**Step 2.** What is the revenue if she sells the "house" brand for $2.30 and the "name" brand for $4.10?
+```{r}
+x <- 2.3
+y <- 4.1
+
+revenue <- - (21 * x^2) + (28 * y * x) - (23 * y^2) + (81 * x) + (40 * y) 
+cat("The revenue is $", revenue, "\n")
+```
+
+# 4.
+
+A company has a plant in Los Angeles and a plant in Denver.
+The firm is committed to produce a total of 96 units of a product each week.
+The total weekly cost is given by $C(x, y) = \frac{1}{6} x^2 + \frac{1}{6} y^2 + 7x + 25y + 700$, where $x$ is the number of units produced in Los Angeles and $y$ is the number of units produced in Denver.
+How many units should be produced in each plant to minimize the total weekly cost?
+
+This is a univariate function.
+To find the minimum, we take the partial derivatives of the function and set them equal to zero.
+$$ C_x = \frac{1}{3} x + 7 = 0 $$
+$$ \frac{1}{3} x = -7 $$
+$$ x = -21 $$
+$$ C_y = \frac{1}{3} y + 25 = 0 $$
+$$ \frac{1}{3} y = -25 $$
+$$ y = -75 $$
+Since the number of units produced cannot be negative, the minimum cost occurs when 21 units are produced in Los Angeles and 75 units are produced in Denver.
+
+# 5.
+
+Evaluate the double integral on the given region.
+$$ \int\int_R (e^{8x + 3y}) \, dA ; R: 2 \leq x \leq 4 \text{ and } 2 \leq y \leq 4 $$
+
+Write your answer in exact form without decimals.
+
+$$ f_x = 24 - 6y^2 = 0 $$ $$ 24 = 6y^2 $$ $$ y^2 = 4 $$ $$ y = \pm 2 $$
+
+$$ f_y = -12xy - 24y^2 = 0 $$ $$ -12xy - 24y^2 = 0 $$ $$ -12x - 24y = 0 $$ $$ -12x = 24y $$ $$ x = -2y $$ $$ x = -2(\pm 2) $$ $$ x = \pm 4 $$
+
+5)  Evaluate the double integral on the given region. Write your answer in exact form without decimals. $$
+    \int_{2}^{4}\int_{2}^{4} e^{8x+3y} \, dx \, dy
+    $$
+
+Apply u-substitution
+
+$u = 8x+3y$
+
+Take derivative with respect to $x$:
+
+$$
+8+0
+$$
+
+$\frac{du}{dx} = 8+0$
+
+$dx = \frac{1}{8}du$
+
+Now plug in 2 and 4 to $u$ for adjusted boundaries:
+
+$8(2)+3y=16+3y$
+
+$8(4)+3y=32+3y$
+
+The updated double integral becomes:
+
+$$
+\int_{16+3y}^{32+3y} e^u \cdot \frac{1}{8} du
+$$
+
+Move the constant to the front:
+
+$$
+\frac{1}{8} \int_{16+3y}^{32+3y} e^u \, du
+$$
+
+$$
+\frac{1}{8}(e^{32+3y} - e^{16+3y}) \, du
+$$
+
+$$
+\int_{2}^{4} \frac{1}{8}(e^{32+3y} - e^{16+3y}) \, dy
+$$
+
+Apply sum rule
+
+$$
+\frac{1}{8} \int_{2}^{4} e^{32+3y} - \int_{2}^{4} e^{16+3y} \, dy
+$$
+
+Apply u-substitution
+
+$u = 32+3y$
+
+Take derivative with respect to $y$:
+
+$$
+0+3
+$$
+
+$\frac{du}{dy} = 0+3$
+
+$dy = \frac{1}{3}du$
+
+Now plug in 2 and 4 to $u$ for adjusted boundaries:
+
+$32+3(2)=38$
+
+$32+3(4)=44$
+
+The updated double integral becomes:
+
+$$
+\int_{38}^{44} e^u \cdot \frac{1}{3} \, du
+$$
+
+$$
+\frac{1}{3}(e^{44}-e^{38})
+$$
+
+Apply u-substitution
+
+$u = 16+3y$
+
+Take derivative with respect to $y$:
+
+$$
+0+3
+$$
+
+$\frac{du}{dy} = 0+3$
+
+$dy = \frac{1}{3}du$
+
+Now plug in 2 and 4 to $u$ for adjusted boundaries:
+
+$16+3(2)=22$
+
+$16+3(4)=28$
+
+The updated double integral becomes:
+
+$$
+\int_{22}^{28} e^u \cdot \frac{1}{3} \, du
+$$
+
+$$
+\frac{1}{3}(e^{28}-e^{22})
+$$
+
+Now combine:
+
+$$
+(e^{44}-e^{38})-(e^{28}-e^{22})
+$$
+
+$$
+e^{44}-e^{38}-e^{28}+e^{22}
+$$
+
+Insert the constants:
+
+$$
+\frac{1}{8} \cdot \frac13(e^{44}-e^{38}-e^{28}+e^{22})
+$$
+
+$$
+\frac{1}{24}(e^{44}-e^{38}-e^{28}+e^{22})
+$$
+
+$$
+\frac{e^{44}-e^{38}-e^{28}+e^{22}}{24}
+$$

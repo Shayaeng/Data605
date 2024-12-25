@@ -1,0 +1,118 @@
+---
+title: "Untitled"
+author: "Shaya Engelman"
+date: "2024-05-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Taylor Series Expansions of Popular Functions
+
+**This week, we'll work out some Taylor Series expansions of popular functions.**
+
+**For each function, only consider its valid ranges as indicated in the notes when you are computing the Taylor Series expansion. Please submit your assignment as an R- Markdown document.**
+
+## 1. $f(x) = \frac{1}{1-x}$
+
+This function can be expanded around $x = 0$ using the geometric series:
+
+$$
+\frac{1}{1 - x} = \sum_{n=0}^{\infty} x^n
+$$
+
+### Derivatives
+
+The derivatives of $f(x)$ are:
+
+$$
+f'(x) = \frac{1}{(1-x)^2}, \quad f''(x) = \frac{2}{(1-x)^3}, \quad f'''(x) = \frac{6}{(1-x)^4}, + \cdots
+$$
+
+At $x = 0$, the derivatives simplify to:
+
+$$
+f(0) = 1, \quad f'(0) = 1, \quad f''(0) = 2, \quad f'''(0) = 6, + \cdots
+$$
+
+Thus, the Taylor Series expansion of $f(x) = \frac{1}{1-x}$ around $x = 0$ is:
+
+$$
+\frac{1}{1 - x} = 1 + x + x^2 + x^3 + \cdots
+$$
+
+## 2. $f(x) = e^x$
+
+The Taylor Series expansion for $e^x$ around $x = a$ is:
+
+$$
+e^x = \sum_{n=0}^{\infty} \frac{(x-a)^n}{n!}
+$$
+
+When $a = 0$, it simplifies to:
+
+$$
+e^x = \sum_{n=0}^{\infty} \frac{x^n}{n!}
+$$
+
+### Derivatives
+
+The derivatives of $f(x)$ are all equal to $e^x$, so at $x = 0$, they are all equal to 1. Thus, the Taylor Series expansion of $e^x$ around $x = 0$ is:
+
+$$
+e^x = 1 + x + \frac{x^2}{2!} + \frac{x^3}{3!} + \cdots
+$$
+
+## 3. $f(x) = \ln(1+x)$
+
+The Taylor Series expansion for $\ln(1+x)$ around $x = a$ is:
+
+$$
+\ln(1+x) = \sum_{n=1}^{\infty} \frac{(-1)^{n-1}x^n}{n}
+$$
+
+When $a = 0$, it simplifies to:
+
+$$
+\ln(1+x) = \sum_{n=1}^{\infty} \frac{(-1)^{n-1}x^n}{n}
+$$
+
+### Derivatives
+
+The derivative of $f(x)$ is:
+
+$$
+f'(x) = \frac{1}{1+x}
+$$
+
+At $x = 0$, the derivative is $f'(0) = 1$. Thus, the Taylor Series expansion of $\ln(1+x)$ around $x = 0$ is:
+
+$$
+\ln(1+x) = x - \frac{x^2}{2} + \frac{x^3}{3} - \frac{x^4}{4} + \cdots
+$$
+
+## 4. $f(x) = \sqrt{x}$
+
+The Taylor Series expansion for $\sqrt{x}$ around $x = a$ is:
+
+$$
+\sqrt{x} = \sqrt{a} + \frac{1}{2\sqrt{a}}(x-a) - \frac{1}{8a^{3/2}}(x-a)^2 + \frac{1}{16a^{5/2}}(x-a)^3 + \cdots
+$$
+
+When $a = 0$, it simplifies to:
+
+$$
+\sqrt{x} = \frac{1}{2}x^{-1/2} - \frac{1}{8}x^{-3/2} + \frac{1}{16}x^{-5/2} - \frac{5}{128}x^{-7/2} + \cdots
+$$
+
+### Derivatives
+
+The derivative of $f(x)$ is:
+
+$$
+f'(x) = \frac{1}{2\sqrt{x}}
+$$
+
+At $x = 0$, the derivative is $f'(0) = \infty$. Thus, the Taylor Series expansion of $\sqrt{x}$ around $x = 0$ is not valid.
